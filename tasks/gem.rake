@@ -1,4 +1,4 @@
-require 'rake/gempackagetask'
+require 'rubygems/package_task'
 require 'yaml'
 
 task :clean => :clobber_package
@@ -23,8 +23,8 @@ Thin::GemSpec = Gem::Specification.new do |s|
     s.add_dependency      'daemons',      '>= 1.0.9'
   end
 
-  s.files                 = %w(CHANGELOG README Rakefile) +
-                            Dir.glob("{benchmark,bin,doc,example,lib,spec,tasks}/**/*") - Dir.glob("lib/thin_parser.*") + 
+  s.files                 = %w(CHANGELOG README.md Rakefile) +
+                            Dir.glob("{benchmark,bin,doc,example,lib,spec,tasks}/**/*") - Dir.glob("lib/thin_parser.*") +
                             Dir.glob("ext/**/*.{h,c,rb,rl}")
   
   if WIN
@@ -37,7 +37,7 @@ Thin::GemSpec = Gem::Specification.new do |s|
   s.bindir                = "bin"
 end
 
-Rake::GemPackageTask.new(Thin::GemSpec) do |p|
+Gem::PackageTask.new(Thin::GemSpec) do |p|
   p.gem_spec = Thin::GemSpec
 end
 
