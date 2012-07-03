@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Connection do
   before do
-    @connection = Connection.new(mock('EM', :null_object => true))
+    @connection = Connection.new(mock('EM').as_null_object)
     @connection.post_init
     @connection.backend = mock("backend", :ssl? => false)
     @connection.app = proc do |env|

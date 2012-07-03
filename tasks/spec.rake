@@ -1,7 +1,7 @@
 CLEAN.include %w(coverage tmp log)
 
-gem "rspec", "~> 1.2.9"
-require 'spec/rake/spectask'
+gem "rspec"
+require 'rspec/core/rake_task'
 
 PERF_SPECS = FileList['spec/perf/*_spec.rb']
 WIN_SPECS  = %w(
@@ -14,13 +14,13 @@ WIN_SPECS  = %w(
 # HACK Event machine causes some problems when running multiple
 # tests in the same VM so we split the specs in 2 before I find
 # a better solution...
-SPECS2     = %w(spec/server/threaded_spec.rb spec/server/tcp_spec.rb)  
+SPECS2     = %w(spec/server/threaded_spec.rb spec/server/tcp_spec.rb)
 SPECS      = FileList['spec/**/*_spec.rb'] - PERF_SPECS - SPECS2
 
 def spec_task(name, specs)
-  Spec::Rake::SpecTask.new(name) do |t|
-    t.spec_opts = %w(-fs -c)
-    t.spec_files = specs
+  RSpec::Core::RakeTask.new(name) do |t|
+    t.rspec_opts = %w(-fs -c)
+    t.pattern = specs
   end
 end
 

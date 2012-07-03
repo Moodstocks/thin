@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'thin'
-gem "rspec", "~> 1.2.9"
-require 'spec'
+gem "rspec"
+require 'rspec'
 require 'benchmark'
 require 'timeout'
 require 'fileutils'
@@ -228,7 +228,7 @@ module Helpers
   end
 end
 
-Spec::Runner.configure do |config|
+RSpec.configure do |config|
   config.include Matchers
   config.include Helpers
 end
