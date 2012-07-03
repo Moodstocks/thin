@@ -50,6 +50,8 @@ module Thin
       
       Daemonize.daemonize(File.expand_path(@log_file), name)
       
+      trap('INT') { exit }
+
       Dir.chdir(pwd)
       
       write_pid_file
