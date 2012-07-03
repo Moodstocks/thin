@@ -234,14 +234,10 @@ module Thin
         unless Thin.win?
           trap('QUIT') { stop }
           trap('HUP')  { restart }
-<<<<<<< HEAD
-          trap('USR1') { Daemonize.redirect_io(File.expand_path(log_file)) if pid }
-=======
           trap('USR1') { reopen_log }
->>>>>>> 12cf2016e647bf605f91fbe66e51060e536a7fbb
         end
       end
-      
+
       def select_backend(host, port, options)
         case
         when options.has_key?(:backend)
