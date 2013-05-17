@@ -9,6 +9,11 @@ module Thin
 
     PERSISTENT_STATUSES  = [100, 101].freeze
 
+    #Error Responses
+    ERROR            = [500, {'Content-Type' => 'text/plain'}, ['Internal server error']].freeze
+    PERSISTENT_ERROR = [500, {'Content-Type' => 'text/plain', 'Connection' => 'keep-alive', 'Content-Length' => "21"}, ['Internal server error']].freeze
+    BAD_REQUEST      = [400, {'Content-Type' => 'text/plain'}, ['Bad Request']].freeze
+
     # Status code
     attr_accessor :status
 
@@ -28,8 +33,8 @@ module Thin
     # to be sent in the response.
     def headers_output
       # Set default headers
-      @headers[CONNECTION] = persistent? ? KEEP_ALIVE : CLOSE
-      @headers[SERVER]     = Thin::SERVER
+      @headers[CONNECTION] = persistent? ? KEEP_ALIVE : CLOSE unless @headers.has_key?(CONNECTION)
+      @headers[SERVER]     = Thin::SERVER unless @headers.has_key?(SERVER)
 
       @headers.to_s
     end

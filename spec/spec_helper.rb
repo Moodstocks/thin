@@ -1,7 +1,5 @@
 require 'rubygems'
 require 'thin'
-gem "rspec"
-require 'rspec'
 require 'benchmark'
 require 'timeout'
 require 'fileutils'
@@ -30,28 +28,28 @@ module Matchers
     # Base on benchmark_unit/assertions#compare_benchmarks
     def matches?(proc)
       @time, multiplier = 0, 1
-      
+
       while (@time < 0.01) do
-        @time = Benchmark::Unit.measure do 
+        @time = Benchmark::Unit.measure do
           multiplier.times &proc
         end
         multiplier *= 10
       end
-      
+
       multiplier /= 10
-      
+
       iterations = (Benchmark::Unit::CLOCK_TARGET / @time).to_i * multiplier
       iterations = 1 if iterations < 1
-      
-      total = Benchmark::Unit.measure do 
+
+      total = Benchmark::Unit.measure do
         iterations.times &proc
       end
-      
+
       @time = total / iterations
-      
+
       @time < @max_time
     end
-    
+
     def failure_message(less_more=:less)
       "took <#{@time.inspect} RubySeconds>, should take #{less_more} than #{@max_time} RubySeconds."
     end
@@ -60,7 +58,7 @@ module Matchers
       failure_message :more
     end
   end
-  
+
   class ValidateWithLint
     def matches?(request)
       @request = request
@@ -70,7 +68,7 @@ module Matchers
       @message = e.message
       false
     end
-    
+
     def failure_message(negation=nil)
       "should#{negation} validate with Rack Lint: #{@message}"
     end
@@ -84,14 +82,14 @@ module Matchers
     def initialize(time)
       @time = time
     end
-    
+
     def matches?(proc)
       Timeout.timeout(@time) { proc.call }
       true
     rescue Timeout::Error
-      false 
+      false
     end
-    
+
     def failure_message(negation=nil)
       "should#{negation} take less then #{@time} sec to run"
     end
@@ -106,14 +104,14 @@ module Matchers
   def be_faster_then(time)
     BeFasterThen.new(time)
   end
-  
+
   def validate_with_lint
     ValidateWithLint.new
   end
 
   def take_less_then(time)
     TakeLessThen.new(time)
-  end  
+  end
 end
 
 module Helpers
@@ -134,14 +132,14 @@ module Helpers
   ensure
     stream.reopen(old_stream)
   end
-  
+
   def silence_warnings
     old_verbose, $VERBOSE = $VERBOSE, nil
     yield
   ensure
     $VERBOSE = old_verbose
   end
-  
+
   # Create and parse a request
   def R(raw, convert_line_feed=false)
     raw.gsub!("\n", "\r\n") if convert_line_feed
@@ -149,13 +147,13 @@ module Helpers
     request.parse(raw)
     request
   end
-  
+
   def start_server(address=DEFAULT_TEST_ADDRESS, port=DEFAULT_TEST_PORT, options={}, &app)
     @server = Thin::Server.new(address, port, options, app)
     @server.ssl = options[:ssl]
     @server.threaded = options[:threaded]
     @server.timeout = 3
-    
+
     @thread = Thread.new { @server.start }
     if options[:wait_for_socket]
       wait_for_socket(address, port)
@@ -164,11 +162,11 @@ module Helpers
       sleep 0.01 until @server.running?
     end
   end
-  
+
   def stop_server
     @server.stop!
     @thread.kill
-    
+
     100.times do
       break unless EM.reactor_running?
       sleep 0.01
@@ -176,7 +174,7 @@ module Helpers
 
     raise "Reactor still running, wtf?" if EventMachine.reactor_running?
   end
-  
+
   def wait_for_socket(address=DEFAULT_TEST_ADDRESS, port=DEFAULT_TEST_PORT, timeout=5)
     Timeout.timeout(timeout) do
       loop do
@@ -192,7 +190,7 @@ module Helpers
       end
     end
   end
-    
+
   def send_data(data)
     if @server.backend.class == Backends::UnixServer
       socket = UNIXSocket.new(@server.socket)
@@ -204,7 +202,7 @@ module Helpers
     socket.close
     out
   end
-  
+
   def parse_response(response)
     raw_headers, body = response.split("\r\n\r\n", 2)
     raw_status, raw_headers = raw_headers.split("\r\n", 2)
@@ -214,7 +212,7 @@ module Helpers
 
     [ status, headers, body ]
   end
-  
+
   def get(url)
     if @server.backend.class == Backends::UnixServer
       send_data("GET #{url} HTTP/1.1\r\nConnection: close\r\n\r\n")
@@ -222,7 +220,7 @@ module Helpers
       Net::HTTP.get(URI.parse("http://#{@server.host}:#{@server.port}" + url))
     end
   end
-  
+
   def post(url, params={})
     Net::HTTP.post_form(URI.parse("http://#{@server.host}:#{@server.port}" + url), params).body
   end

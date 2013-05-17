@@ -42,28 +42,10 @@ cd to/your/app
 thin start
 ```
 
-But Thin is also usable with a Rack config file.
-You need to setup a config.ru file and pass it to the thin script:
+When using with Rails and Bundler, make sure to add `gem 'thin'`
+to your Gemfile.
 
-```ruby
-#cat config.ru
-app = proc do |env|
- [
-   200,
-   {
-     'Content-Type' => 'text/html',
-     'Content-Length' => '2'
-   },
-   ['hi']
- ]
-end
-
-run app
-```
-
-` thin start -R config.ru `
-
-See example directory for more samples and run 'thin -h' for usage.
+See example directory for samples and run 'thin -h' for usage.
 
 License
 =======
@@ -72,9 +54,8 @@ Ruby License, http://www.ruby-lang.org/en/LICENSE.txt.
 Credits
 =======
 The parser was stolen from Mongrel http://mongrel.rubyforge.org by Zed Shaw.
-Mongrel Web Server (Mongrel) is copyrighted free software by Zed A. Shaw
-<zedshaw at zedshaw dot com> You can redistribute it and/or modify it under
-either the terms of the GPL.
+Mongrel is copyright 2007 Zed A. Shaw and contributors. It is licensed under
+the Ruby license and the GPL2.
 
 Thin is copyright Marc-Andre Cournoyer <macournoyer@gmail.com>
 

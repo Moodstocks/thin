@@ -7,12 +7,12 @@ RDoc::Task.new do |rdoc|
   rdoc.options += ['--quiet', '--title', Thin::NAME,
              	     "--opname", "index.html",
             	     "--line-numbers",
-            	     "--main", "README",
+            	     "--main", "README.md",
             	     "--inline-source"]
   rdoc.template = "site/rdoc.rb"
-  rdoc.main = "README"
+  rdoc.main = "README.md"
   rdoc.title = Thin::NAME
-  rdoc.rdoc_files.add %w(README) +
+  rdoc.rdoc_files.add %w(README.md) +
                       FileList['lib/**/*.rb'] +
                       FileList['bin/*']
 end

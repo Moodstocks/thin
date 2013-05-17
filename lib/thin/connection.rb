@@ -34,12 +34,13 @@ module Thin
 
     # Called when data is received from the client.
     def receive_data(data)
+      @idle = false
       trace { data }
       process if @request.parse(data)
     rescue InvalidRequest => e
       log "!! Invalid request"
       log_error e
-      close_connection
+      post_process Response::BAD_REQUEST
     end
 
     # Called when all data was received and the request
@@ -82,8 +83,8 @@ module Thin
       response
     rescue Exception
       handle_error
-      terminate_request
-      nil # Signal to post_process that the request could not be processed
+      # Pass through error response
+      can_persist? && @request.persistent? ? Response::PERSISTENT_ERROR : Response::ERROR
     end
 
     def post_process(result)
@@ -108,6 +109,8 @@ module Thin
 
     rescue Exception
       handle_error
+      # Close connection since we can't handle response gracefully
+      close_connection
     ensure
       # If the body is being deferred, then terminate afterward.
       if @response.body.respond_to?(:callback) && @response.body.respond_to?(:errback)
@@ -123,7 +126,6 @@ module Thin
     def handle_error
       log "!! Unexpected error while processing request: #{$!.message}"
       log_error
-      close_connection rescue nil
     end
 
     def close_request_response
@@ -142,6 +144,8 @@ module Thin
         close_request_response
       else
         close_request_response
+        # Connection become idle but it's still open
+        @idle = true
         # Prepare the connection for another request if the client
         # supports HTTP pipelining (persistent connection).
         post_init
@@ -170,6 +174,12 @@ module Thin
     # and ready to be reused for another request.
     def persistent?
       @can_persist && @response.persistent?
+    end
+
+    # Return +true+ if the connection is open but is not
+    # processing any user requests
+    def idle?
+      @idle
     end
 
     # +true+ if <tt>app.call</tt> will be called inside a thread.

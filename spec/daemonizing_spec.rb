@@ -155,12 +155,12 @@ describe 'Daemonizing' do
   end
   
   it "should ignore if no restart block specified" do
-    TestServer.restart(@server.pid_file)
+    @server.restart
   end
   
   it "should not restart when not running" do
     silence_stream STDOUT do
-      TestServer.restart(@server.pid_file)
+      @server.restart
     end
   end
   
@@ -176,6 +176,12 @@ describe 'Daemonizing' do
     proc { @server.daemonize }.should raise_error(PidFileExist)
     
     File.exist?(@server.pid_file).should be_true
+  end
+  
+  it "should raise if no pid file" do
+    proc do
+      TestServer.kill("donotexist", 0)
+    end.should raise_error(PidFileNotFound)
   end
   
   it "should should delete pid file if stale" do

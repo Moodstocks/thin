@@ -16,6 +16,7 @@ end
 module Thin
   # Raised when the pid file already exist starting as a daemon.
   class PidFileExist < RuntimeError; end
+  class PidFileNotFound < RuntimeError; end
   
   # Module included in classes that can be turned into a daemon.
   # Handle stuff like:
@@ -74,6 +75,9 @@ module Thin
       target_gid = Etc.getgrnam(group).gid
 
       if uid != target_uid || gid != target_gid
+        # Change PID file ownership
+        File.chown(target_uid, target_gid, @pid_file) if File.exists?(@pid_file)
+
         # Change process ownership
         Process.initgroups(user, target_gid)
         Process::GID.change_privilege(target_gid)
@@ -126,26 +130,22 @@ module Thin
             sleep 0.1 while Process.running?(pid)
           end
         else
-          Logging.log "Can't stop process, no PID found in #{pid_file}"
+          raise PidFileNotFound, "Can't stop process, no PID found in #{pid_file}"
         end
       rescue Timeout::Error
         Logging.log "Timeout!"
-        force_kill pid_file
+        force_kill(pid, pid_file)
       rescue Interrupt
-        force_kill pid_file
+        force_kill(pid, pid_file)
       rescue Errno::ESRCH # No such process
         Logging.log "process not found!"
-        force_kill pid_file
+        force_kill(pid, pid_file)
       end
       
-      def force_kill(pid_file)
-        if pid = read_pid_file(pid_file)
-          Logging.log "Sending KILL signal to process #{pid} ... "
-          Process.kill("KILL", pid)
-          File.delete(pid_file) if File.exist?(pid_file)
-        else
-          Logging.log "Can't stop process, no PID found in #{pid_file}"
-        end
+      def force_kill(pid, pid_file)
+        Logging.log "Sending KILL signal to process #{pid} ... "
+        Process.kill("KILL", pid)
+        File.delete(pid_file) if File.exist?(pid_file)
       end
       
       def read_pid_file(file)
