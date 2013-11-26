@@ -37,7 +37,7 @@ module Thin
       def start
         # Constantize backend class
         @options[:backend] = eval(@options[:backend], TOPLEVEL_BINDING) if @options[:backend]
-        
+
         server = Server.new(@options[:socket] || @options[:address], # Server detects kind of socket
                             @options[:port],                         # Port ignored on UNIX socket
                             @options)
@@ -50,6 +50,7 @@ module Thin
         server.maximum_persistent_connections = @options[:max_persistent_conns]
         server.threaded                       = @options[:threaded]
         server.no_epoll                       = @options[:no_epoll] if server.backend.respond_to?(:no_epoll=)
+        server.threadpool_size                = @options[:threadpool_size] if server.threaded?
 
         # ssl support
         if @options[:ssl]
@@ -113,7 +114,7 @@ module Thin
         @options.keys.each { |o| @options[o.to_s] = @options.delete(o) }
 
         File.open(config_file, 'w') { |f| f << @options.to_yaml }
-        log ">> Wrote configuration to #{config_file}"
+        log_info "Wrote configuration to #{config_file}"
       end
       
       protected
@@ -165,7 +166,7 @@ module Thin
       private
         def load_adapter
           adapter = @options[:adapter] || Rack::Adapter.guess(@options[:chdir])
-          log ">> Using #{adapter} adapter"
+          log_info "Using #{adapter} adapter"
           Rack::Adapter.for(adapter, @options)
         rescue Rack::AdapterNotFound => e
           raise InvalidOption, e.message

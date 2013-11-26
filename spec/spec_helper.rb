@@ -5,6 +5,7 @@ require 'timeout'
 require 'fileutils'
 require 'net/http'
 require 'socket'
+require 'tempfile'
 
 include Thin
 
@@ -138,6 +139,22 @@ module Helpers
     yield
   ensure
     $VERBOSE = old_verbose
+  end
+
+  def with_redirected_stdout
+    ret = nil
+    t = Tempfile.new('thin-tests')
+    begin
+      old_stdout = STDOUT.dup
+      STDOUT.reopen(t) ; STDOUT.sync = true
+      yield
+      t.rewind
+      ret = t.read
+    ensure
+      STDOUT.reopen(old_stdout)
+      t.close
+    end
+    ret
   end
 
   # Create and parse a request

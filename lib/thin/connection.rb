@@ -10,6 +10,8 @@ module Thin
     # This is a template async response. N.B. Can't use string for body on 1.9
     AsyncResponse = [-1, {}, []].freeze
 
+    EMPTY_BODY = [].freeze
+
     # Rack application (adapter) served by this connection.
     attr_accessor :app
 
@@ -35,11 +37,10 @@ module Thin
     # Called when data is received from the client.
     def receive_data(data)
       @idle = false
-      trace { data }
+      trace data
       process if @request.parse(data)
     rescue InvalidRequest => e
-      log "!! Invalid request"
-      log_error e
+      log_error("Invalid request", e)
       post_process Response::BAD_REQUEST
     end
 
@@ -81,8 +82,8 @@ module Thin
         response = @app.call(@request.env)
       end
       response
-    rescue Exception
-      handle_error
+    rescue Exception => e
+      unexpected_error(e)
       # Pass through error response
       can_persist? && @request.persistent? ? Response::PERSISTENT_ERROR : Response::ERROR
     end
@@ -96,19 +97,23 @@ module Thin
 
       @response.status, @response.headers, @response.body = *result
 
-      log "!! Rack application returned nil body. Probably you wanted it to be an empty string?" if @response.body.nil?
+      log_error("Rack application returned nil body. " \
+                "Probably you wanted it to be an empty string?") if @response.body.nil?
+
+      # HEAD requests should not return a body.
+      @response.body = EMPTY_BODY if @request.head?
 
       # Make the response persistent if requested by the client
       @response.persistent! if @request.persistent?
 
       # Send the response
       @response.each do |chunk|
-        trace { chunk }
+        trace chunk
         send_data chunk
       end
 
-    rescue Exception
-      handle_error
+    rescue Exception => e
+      unexpected_error(e)
       # Close connection since we can't handle response gracefully
       close_connection
     ensure
@@ -122,10 +127,9 @@ module Thin
       end
     end
 
-    # Logs catched exception and closes the connection.
-    def handle_error
-      log "!! Unexpected error while processing request: #{$!.message}"
-      log_error
+    # Logs information about an unexpected exceptional condition
+    def unexpected_error(e)
+      log_error("Unexpected error while processing request", e)
     end
 
     def close_request_response
@@ -192,8 +196,8 @@ module Thin
     # IP Address of the remote client.
     def remote_address
       socket_address
-    rescue Exception
-      log_error
+    rescue Exception => e
+      log_error('Could not infer remote address', e)
       nil
     end
 

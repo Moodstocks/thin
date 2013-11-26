@@ -23,6 +23,11 @@ describe Request, 'parser' do
     request.should validate_with_lint
   end
   
+  it 'should upcase headers' do
+    request = R("GET / HTTP/1.1\r\nX-Invisible: yo\r\n\r\n")
+    request.env['HTTP_X_INVISIBLE'].should == 'yo'
+  end
+  
   it 'should not prepend HTTP_ to Content-Type and Content-Length' do
     request = R("POST / HTTP/1.1\r\nHost: localhost\r\nContent-Type: text/html\r\nContent-Length: 2\r\n\r\naa")
     request.env.keys.should_not include('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH')
@@ -180,13 +185,21 @@ EOS
     end
   end
   
-  xit "should parse absolute request URI" do
+  it "should parse absolute request URI" do
     request = R(<<-EOS, true)
-GET http://localhost:3000/hi HTTP/1.1
+GET http://localhost:3000/hi?qs#f HTTP/1.1
 Host: localhost:3000
 
 EOS
+    
     request.env['PATH_INFO'].should == '/hi'
+    request.env['REQUEST_PATH'].should == '/hi'
+    request.env['REQUEST_URI'].should == '/hi?qs'
+    request.env['HTTP_VERSION'].should == 'HTTP/1.1'
+    request.env['REQUEST_METHOD'].should == 'GET'
+    request.env["rack.url_scheme"].should == 'http'
+    request.env['FRAGMENT'].to_s.should == "f"
+    request.env['QUERY_STRING'].to_s.should == "qs"
 
     request.should validate_with_lint
   end

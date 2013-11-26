@@ -1,3 +1,4 @@
+require 'logger'
 require 'optparse'
 require 'yaml'
 
@@ -37,12 +38,13 @@ module Thin
         :address              => '0.0.0.0',
         :port                 => Server::DEFAULT_PORT,
         :timeout              => Server::DEFAULT_TIMEOUT,
-        :log                  => 'log/thin.log',
+        :log                  => File.join(Dir.pwd, 'log/thin.log'),
         :pid                  => 'tmp/pids/thin.pid',
         :max_conns            => Server::DEFAULT_MAXIMUM_CONNECTIONS,
         :max_persistent_conns => Server::DEFAULT_MAXIMUM_PERSISTENT_CONNECTIONS,
         :require              => [],
-        :wait                 => Controllers::Cluster::DEFAULT_WAIT_TIME
+        :wait                 => Controllers::Cluster::DEFAULT_WAIT_TIME,
+        :threadpool_size      => 20
       }
 
       parse!
@@ -124,6 +126,8 @@ module Thin
                                        "(default: #{@options[:max_persistent_conns]})") { |num| @options[:max_persistent_conns] = num.to_i }
         opts.on(      "--threaded", "Call the Rack application in threads " +
                                     "[experimental]")                                   { @options[:threaded] = true }
+        opts.on(      "--threadpool-size NUM", "Sets the size of the EventMachine threadpool.",
+                                       "(default: #{@options[:threadpool_size]})") { |num| @options[:threadpool_size] = num.to_i }
         opts.on(      "--no-epoll", "Disable the use of epoll")                         { @options[:no_epoll] = true } if Thin.linux?
 
         opts.separator ""
@@ -131,7 +135,7 @@ module Thin
 
         opts.on_tail("-r", "--require FILE", "require the library")                     { |file| @options[:require] << file }
         opts.on_tail("-q", "--quiet", "Silence all logging")                            { @options[:quiet] = true }
-        opts.on_tail("-D", "--debug", "Set debugging on")                               { @options[:debug] = true }
+        opts.on_tail("-D", "--debug", "Enable debug logging")                           { @options[:debug] = true }
         opts.on_tail("-V", "--trace", "Set tracing on (log raw request/response)")      { @options[:trace] = true }
         opts.on_tail("-h", "--help", "Show this message")                               { puts opts; exit }
         opts.on_tail('-v', '--version', "Show version")                                 { puts Thin::SERVER; exit }
@@ -172,9 +176,22 @@ module Thin
       Dir.chdir(@options[:chdir]) unless CONFIGLESS_COMMANDS.include?(@command)
 
       @options[:require].each { |r| ruby_require r }
-      Logging.debug = @options[:debug]
-      Logging.trace = @options[:trace]
-      Logging.silent = @options[:quiet]
+
+      # Setup the logger
+      if @options[:quiet]
+        Logging.silent = true
+      else
+        logger           = Logger.new(STDOUT)
+        logger.level     = Logger::INFO
+        logger.level     = Logger::DEBUG if @options[:debug]
+        logger.formatter = Logging::SimpleFormatter.new
+        Logging.logger = logger
+      end
+
+      if @options[:trace]
+        # Trace raw requests/responses
+        Logging.trace_logger = Logging.logger
+      end
 
       controller = case
       when cluster? then Controllers::Cluster.new(@options)
