@@ -1,3 +1,12 @@
+== 1.6.2 Doc Brown
+ * No longer replace response's body on HEAD request. Ensuring body.close will be called.
+ * Remove `---ssl-verify` option as EventMachine doesn't verify the certificate.
+ * Fix env['rack.peer_cert'] to return SSL certifcate.
+
+== 1.6.1 Death Proof
+ * Regression: Default logger to STDOUT when using outside of CLI.
+ * Regression: Downgrade Rack required version back to 1.0 to work w/ prior Rails versions.
+
 == 1.6.0 Greek Yogurt
  * Accept absolute URL in request line, eg.: 'GET http://site.com/he/lo HTTP/1.1'.
  * HEAD request no longer return a body in the response.

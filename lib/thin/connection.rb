@@ -10,8 +10,6 @@ module Thin
     # This is a template async response. N.B. Can't use string for body on 1.9
     AsyncResponse = [-1, {}, []].freeze
 
-    EMPTY_BODY = [].freeze
-
     # Rack application (adapter) served by this connection.
     attr_accessor :app
 
@@ -54,6 +52,12 @@ module Thin
         @request.threaded = false
         post_process(pre_process)
       end
+    end
+
+    def ssl_verify_peer(cert)
+      # In order to make the cert available later we have to have made at least
+      # a show of verifying it.
+      true
     end
 
     def pre_process
@@ -101,7 +105,7 @@ module Thin
                 "Probably you wanted it to be an empty string?") if @response.body.nil?
 
       # HEAD requests should not return a body.
-      @response.body = EMPTY_BODY if @request.head?
+      @response.skip_body! if @request.head?
 
       # Make the response persistent if requested by the client
       @response.persistent! if @request.persistent?
